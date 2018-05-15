@@ -6,9 +6,16 @@ cache:
   directories:
     - $HOME/.composer/cache/files
 
-matrix:
+before_script:
+  - composer install
+
+script:
+  - vendor/bin/simple-phpunit
+
+jobs:
   include:
-    - php: 5.3
+    - stage: test
+      php: 5.3
       dist: precise
     - php: 5.4
     - php: 5.5
@@ -17,13 +24,17 @@ matrix:
     - php: 7.1
     - php: 7.2
     - php: hhvm
+    - stage: release
+      if: branch = master
+      php: 5.3
+      dist: precise
+      script:
+        - pip install --user awscli
+        - export PATH=$PATH:$HOME/.local/bin
 
-before_script:
-  - composer install
+        - curl -LSs https://box-project.github.io/box2/installer.php | php
 
-script:
-  - vendor/bin/simple-phpunit
+        - mkdir -p build/
+        - php box.phar build
 
-branches:
-  only:
-    - master
+        - aws s3 cp build/insight.phar s3://get.insight.sensiolabs.com/insight.phar --acl=public-read
