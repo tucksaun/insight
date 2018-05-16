@@ -25,16 +25,22 @@ jobs:
     - php: 7.2
     - php: hhvm
     - stage: release
-      if: branch = master
       php: 5.3
       dist: precise
+      before_script:
+        - composer install --no-dev -o
       script:
-        - pip install --user awscli
-        - export PATH=$PATH:$HOME/.local/bin
-
         - curl -LSs https://box-project.github.io/box2/installer.php | php
-
         - mkdir -p build/
         - php box.phar build
-
-        - aws s3 cp build/insight.phar s3://get.insight.sensiolabs.com/insight.phar --acl=public-read
+      deploy: &s3
+        provider: s3
+        access_key_id: $AWS_ACCESS_KEY_ID
+        secret_access_key: $AWS_SECRET_ACCESS_KEY
+        bucket: "get.insight.sensiolabs.com"
+        skip_cleanup: true
+        region: eu-west-1
+        acl: public-read
+        local_dir: build
+        on:
+          tags: true
